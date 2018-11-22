@@ -53,7 +53,7 @@ app.use('/api', bitcoinapi.app);
 app.use('/', routes);
 app.use('/ext/getmoneysupply', function(req,res){
   lib.get_supply(function(supply){
-    res.send(' '+supply);
+    res.send({ data: ' '+supply });
   });
 });
 
@@ -67,7 +67,7 @@ app.use('/ext/getaddress/:hash', function(req,res){
         balance: (address.balance / 100000000).toString().replace(/(^-+)/mg, ''),
         last_txs: address.txs,
       };
-      res.send(a_ext);
+      res.send({ data: a_ext });
     } else {
       res.send({ error: 'address not found.', hash: req.param('hash')})
     }
@@ -77,7 +77,7 @@ app.use('/ext/getaddress/:hash', function(req,res){
 app.use('/ext/getbalance/:hash', function(req,res){
   db.get_address(req.param('hash'), function(address){
     if (address) {
-      res.send((address.balance / 100000000).toString().replace(/(^-+)/mg, ''));
+      res.send({ data: (address.balance / 100000000).toString().replace(/(^-+)/mg, '') });
     } else {
       res.send({ error: 'address not found.', hash: req.param('hash')})
     }
@@ -88,7 +88,7 @@ app.use('/ext/getdistribution', function(req,res){
   db.get_richlist(settings.coin, function(richlist){
     db.get_stats(settings.coin, function(stats){
       db.get_distribution(richlist, stats, function(dist){
-        res.send(dist);
+        res.send({ data: dist });
       });
     });
   });
@@ -96,6 +96,24 @@ app.use('/ext/getdistribution', function(req,res){
 
 app.use('/ext/getlasttxs/:min', function(req,res){
   db.get_last_txs(settings.index.last_txs, (req.params.min * 100000000), function(txs){
+    res.send({data: txs});
+  });
+});
+
+app.use('/ext/gettxs', function(req,res){
+  db.get_txs(1000, function(txs){
+    res.send({data: txs});
+  });
+});
+
+app.use('/ext/gettx/:hash', function(req,res){
+  db.get_tx(req.params.hash, function(txs){
+    res.send({data: txs});
+  });
+});
+
+app.use('/ext/getaddrtxs/:addr', function(req,res){
+  db.get_addr_txs(req.params.addr, 1000, function(txs){
     res.send({data: txs});
   });
 });
