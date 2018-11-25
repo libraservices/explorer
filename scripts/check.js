@@ -21,7 +21,7 @@ function check(from, to) {
               console.log(blockIndex + '. Checking tx ' + txHash);
 
               try {
-                lib.get_rawtransaction(txHash, function (rawTx) {
+                lib.get_rawtransaction(txHash, true, function (rawTx) {
                   if (typeof(rawTx) === 'string') {
                     console.log(blockIndex + '. Skipping tx ' + txHash + ': ' + rawTx);
                     txsLoop.next();
@@ -50,7 +50,7 @@ function check(from, to) {
 
                     var vinTx = rawTxVin.txid;
 
-                    lib.get_rawtransaction(vinTx, function (vinRawTx) {
+                    lib.get_rawtransaction(vinTx, true, function (vinRawTx) {
                       for (let vinRawTxVoutIndex in vinRawTx.vout) {
                         var vinRawTxVout = vinRawTx.vout[vinRawTxVoutIndex];
                         var nVinsAddrs = vinRawTxVout.scriptPubKey.addresses.length;
