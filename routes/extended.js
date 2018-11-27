@@ -89,8 +89,8 @@ router.get('/gettxs', makeRequestWrapper(
   },
   req => ({ ...req.params, ...req.query }),
   {
-    limit: [ 'positive_integer', { min_number: 1 } ],
-    page: [ 'positive_integer', { min_number: 1 } ]
+    limit: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ],
+    page: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ]
   }
 ));
 
@@ -127,8 +127,8 @@ router.get('/getaddrtxs/:hash', makeRequestWrapper(
   req => ({ ...req.params, ...req.query }),
   {
     hash: [ 'required', 'string' ],
-    limit: [ 'positive_integer', { min_number: 1 } ],
-    page: [ 'positive_integer', { min_number: 1 } ]
+    limit: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ],
+    page: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ]
   }
 ));
 
