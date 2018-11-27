@@ -16,9 +16,9 @@ router.get('/getaddress/:hash', makeRequestWrapper(
         db.count_addr_txs(hash, function (err, count) {
           var a_ext = {
             address: address.a_id,
-            sent: (address.sent / 100000000),
-            received: (address.received / 100000000),
-            balance: (address.balance / 100000000).toString().replace(/(^-+)/mg, ''),
+            sent: address.sent,
+            received: address.received,
+            balance: address.balance,
             last_txs: address.txs,
             n_tx: count
           };
@@ -40,9 +40,7 @@ router.get('/getbalance/:hash', makeRequestWrapper(
         return cb(new X({ code: 'ADDRESS_NOT_FOUND' }));
       }
 
-      var balance = (address.balance / 100000000).toString().replace(/(^-+)/mg, '');
-
-      cb({ data: balance });
+      cb({ data: address.balance });
     });
   },
   req => ({ ...req.params }),
@@ -63,11 +61,17 @@ router.get('/getdistribution', makeRequestWrapper(
   }
 ));
 
-router.get('/getlasttxs/:min', makeRequestWrapper(function(data, cb){
-  db.get_last_txs(settings.index.last_txs, (req.params.min * 100000000), function(txs){
-    cb({ data: txs });
-  });
-}));
+router.get('/getlasttxs/:min', makeRequestWrapper(
+  function(data, cb) {
+  db.get_last_txs(settings.index.last_txs, req.params.min, function(txs){
+      cb({ data: txs });
+    });
+  },
+  req => ({ ...req.params }),
+  {
+    min: [ 'decimal' ]
+  }
+));
 
 router.get('/gettxs', makeRequestWrapper(
   function({ limit = 100, page = 1 }, cb) {
