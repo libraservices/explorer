@@ -79,7 +79,7 @@ router.get('/gettxs', makeRequestWrapper(
 
     db.get_txs(limit, offset, function(err, txs){
       if (err || txs.length === 0) {
-        return cb({ txs: [], hasNext: false });
+        return cb({ data: [], hasNext: false });
       }
 
       db.get_txs(1, offset + txs.length, function (err, nextTxs) {
