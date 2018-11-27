@@ -77,13 +77,13 @@ router.get('/gettxs', makeRequestWrapper(
   function({ limit = 100, page = 1 }, cb) {
     var offset = (page - 1) * limit;
 
-    db.get_txs(limit, offset, function(txs){
-      if (txs.length === 0) {
+    db.get_txs(limit, offset, function(err, txs){
+      if (err || txs.length === 0) {
         return cb({ txs: [], hasNext: false });
       }
 
-      db.get_txs(1, offset + txs.length, function (nextTxs) {
-        cb({ data: txs, hasNext: nextTxs.length > 0 ? true : false });
+      db.get_txs(1, offset + txs.length, function (err, nextTxs) {
+        cb({ data: txs, hasNext: nextTxs && nextTxs.length > 0 ? true : false });
       });
     });
   },
@@ -114,13 +114,13 @@ router.get('/getaddrtxs/:hash', makeRequestWrapper(
   function({ hash, limit = 100, page = 1 }, cb){
     var offset = (page - 1) * limit;
 
-    db.get_addr_txs(hash, limit, offset, function(txs){
-      if (txs.length === 0) {
+    db.get_addr_txs(hash, limit, offset, function(err, txs){
+      if (err || txs.length === 0) {
         return cb({ data: [], hasNext: false });
       }
 
-      db.get_addr_txs(hash, 1, offset + txs.length, function (nextTxs) {
-        cb({ data: txs, hasNext: nextTxs.length > 0 ? true : false });
+      db.get_addr_txs(hash, 1, offset + txs.length, function (err, nextTxs) {
+        cb({ data: txs, hasNext: nextTxs && nextTxs.length > 0 ? true : false });
       });
     });
   },
