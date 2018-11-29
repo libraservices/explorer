@@ -3,7 +3,7 @@ var mongoose = require('mongoose')
  
 var TxSchema = new Schema({
   raw: { type: String },
-  txid: { type: String, lowercase: true, unique: true, index: true },
+  txid: { type: String, lowercase: true, unique: true },
   vin: { type: Array, default: [] },
   vout: { type: Array, default: [] },
   total: { type: Number, default: 0 },
@@ -12,5 +12,9 @@ var TxSchema = new Schema({
   blockindex: {type: Number, default: 0},
   confirmations: { type: Number, default: 0 }
 }, {id: false});
+
+TxSchema.index({ txid: 1 });
+TxSchema.index({ blockindex: 1 });
+TxSchema.index({ timestamp: 1, blockindex: 1 });
 
 module.exports = mongoose.model('Tx', TxSchema);

@@ -9,5 +9,7 @@ var AddressSchema = new Schema({
   balance: {type: Number, default: 0},
 }, {id: false});
 
+AddressSchema.index({ a_id: 1 });
+
 module.exports = mongoose.model('Address', AddressSchema);
 
