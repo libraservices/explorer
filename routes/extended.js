@@ -114,13 +114,19 @@ router.get('/getaddrtxs/:hash', makeRequestWrapper(
   function({ hash, limit = 100, page = 1 }, cb){
     var offset = (page - 1) * limit;
 
-    db.get_addr_txs(hash, limit, offset, function(err, txs){
-      if (err || txs.length === 0) {
-        return cb({ data: [], hasNext: false });
+    db.get_address(hash, function(address){
+      if (!address) {
+        return cb(new X({ code: 'ADDRESS_NOT_FOUND' }));
       }
 
-      db.get_addr_txs(hash, 1, offset + txs.length, function (err, nextTxs) {
-        cb({ data: txs, hasNext: nextTxs && nextTxs.length > 0 ? true : false });
+      db.get_addr_txs(hash, limit, offset, function(err, txs){
+        if (err || txs.length === 0) {
+          return cb({ data: [], hasNext: false });
+        }
+
+        db.get_addr_txs(hash, 1, offset + txs.length, function (err, nextTxs) {
+          cb({ data: txs, hasNext: nextTxs && nextTxs.length > 0 ? true : false });
+        });
       });
     });
   },
