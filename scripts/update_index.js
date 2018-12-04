@@ -46,7 +46,7 @@ mongoose.connect(dbString, function(err) {
     process.exit();
   }
 
-  console.log('Check new block, interval:' + settings.update_index_interval);
+  console.log('Check new blocks, interval:' + settings.update_index_interval);
 
   check();
 });

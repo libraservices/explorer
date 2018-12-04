@@ -63,7 +63,7 @@ router.get('/getdistribution', makeRequestWrapper(
 
 router.get('/getlasttxs/:min', makeRequestWrapper(
   function(data, cb) {
-    db.get_last_txs(settings.index.last_txs, data.min, function(txs){
+    db.get_last_txs(settings.index.last_txs, function(txs){
       cb({ data: txs });
     });
   },
