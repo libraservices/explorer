@@ -29,8 +29,9 @@ async function tryMongooseConnect() {
 }
 
 async function tryUpdateBlock() {
-  blockNumber = await attempts(1000, 10000, 1.5, getBlockNumber, interval => {
+  blockNumber = await attempts(1000, 10000, 1.5, getBlockNumber, (interval, e) => {
     console.error(`Error fetching the highest block. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
+    console.error(e);
   });
 
   console.log(`The highest block is ${ blockNumber }`);
@@ -48,8 +49,9 @@ async function updateLastPosition() {
 }
 
 async function tryStartServer() {
-  await attempts(1000, 10000, 1.5, startServer, interval => {
+  await attempts(1000, 10000, 1.5, startServer, (interval, e) => {
     console.error(`Error starting server. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
+    console.error(e);
   });
 
   console.log(`Listening ${ port }...`);
@@ -76,7 +78,8 @@ async function startFetchingBlocks() {
   console.log(`Starting fetching blocks...`);
 
   await fetchBlocks();
-  await startFetchingBlocks();
+
+  setTimeout(startFetchingBlocks, 1000);
 }
 
 async function fetchBlocks() {
@@ -88,11 +91,13 @@ async function fetchBlocks() {
 }
 
 async function fetchBlock(blockHeight) {
-  const blockHash = await attempts(1000, 10000, 1.5, () => getBlockHash(blockHeight), interval => {
+  const blockHash = await attempts(1000, 10000, 1.5, () => getBlockHash(blockHeight), (interval, e) => {
     console.error(`Error fetching block hash ${ blockHeight }. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
+    console.error(e);
   });
-  const block = await attempts(1000, 10000, 1.5, () => getBlock(blockHash), interval => {
+  const block = await attempts(1000, 10000, 1.5, () => getBlock(blockHash), (interval, e) => {
     console.error(`Error fetching block ${ blockHeight }. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
+    console.error(e);
   });
 
   blocks.push(block);

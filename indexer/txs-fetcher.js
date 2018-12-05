@@ -14,8 +14,9 @@ async function main() {
 }
 
 async function tryStartServer() {
-  await attempts(1000, 10000, 1.5, startServer, interval => {
+  await attempts(1000, 10000, 1.5, startServer, (interval, e) => {
     console.error(`Error starting server. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
+    console.error(e);
   });
 
   console.log(`Listening ${ port }...`);
@@ -39,13 +40,14 @@ function startServer() {
 }
 
 async function tryStartFetchingBlocks() {
-  const blks = await attempts(1000, 10000, 1.5, fetchBlocks, interval => {
+  const blks = await attempts(1000, 10000, 1.5, fetchBlocks, (interval, e) => {
     console.error(`Error fetching blocks. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
+    console.error(e);
   });
 
   await handleBlocks(blks);
 
-  setTimeout(tryStartFetchingBlocks, 1000);
+  setTimeout(tryStartFetchingBlocks, 10);
 }
 
 async function fetchBlocks() {
@@ -66,6 +68,7 @@ async function handleBlocks(blks) {
 
     const txs = await attempts(1000, 10000, 1.5, () => fetchBlockTxs(blk), (interval, e) => {
       console.error(`Error fetching block txs, height ${ blk.height }. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
+    console.error(e);
     });
 
     blk.tx = txs;
@@ -77,8 +80,9 @@ async function fetchBlockTxs(blk) {
   const txes = [];
 
   for (let txid of blk.tx) {
-    const tx = await attempts(1000, 10000, 1.5, () => fetchBlockTx(blk, txid), interval => {
+    const tx = await attempts(1000, 10000, 1.5, () => fetchBlockTx(blk, txid), (interval, e) => {
       console.error(`Error handling tx ${ txid }. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
+    console.error(e);
     });
 
     txes.push(tx);

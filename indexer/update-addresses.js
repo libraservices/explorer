@@ -14,8 +14,8 @@ async function main() {
 
 async function tryMongooseConnect() {
   await attempts(1000, 10000, 1.5, () => mongooseConnect(dbString), (interval, e) => {
-    console.error(e);
     console.error(`Error connecting to mongodb. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
+    console.error(e);
   });
 
   console.log(`Connected to mongodb`);

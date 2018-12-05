@@ -36,7 +36,7 @@ async function startSavingBlocks() {
     console.error(e);
   });
 
-  setTimeout(startSavingBlocks, 1000);
+  setTimeout(startSavingBlocks, 10);
 }
 
 async function fetchBlocks() {
@@ -62,7 +62,7 @@ async function saveBlocks(blocks) {
     for (let tx of blk.tx) {
       console.log(`Added tx ${ tx.hash } to bulk (${ bulk.length }/${ bulkSize })`);
 
-      bulk.find({ txid: tx.hash }).upsert().updateOne({ $setOnInsert: {
+      bulk.insert({ $setOnInsert: {
         raw : tx.raw,
         txid : tx.hash,
         vout : tx.vout,
