@@ -78,12 +78,14 @@ async function saveBlocks(blocks) {
     }
   }
 
-  if (bulk.length === bulkSize) {
+  if (bulk.length >= bulkSize) {
+    var bulkLength = bulk.length;
+
     await bulk.execute();
 
     bulk = Tx.collection.initializeUnorderedBulkOp();
 
-    console.log(`Done ${ bulk.length } bulk operations`);
+    console.log(`Done ${ bulkLength } bulk operations`);
   }
 }
 

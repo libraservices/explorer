@@ -63,30 +63,57 @@ async function handleBlocks(blks) {
 
   console.log('Got ' + blks.length + ' new blocks');
 
+  const promises = [];
+
   for (let blk of blks) {
     console.log(`Fetching txes of block ${ blk.height }`);
 
-    const txs = await attempts(1000, 10000, 1.5, () => fetchBlockTxs(blk), (interval, e) => {
+    promises.push(await attempts(1000, 10000, 1.5, () => fetchBlockTxs(blk), (interval, e) => {
       console.error(`Error fetching block txs, height ${ blk.height }. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
     console.error(e);
+    }));
+  }
+
+  const promisesResults = await Promise.all(promises);
+
+  const txesToBlocks = promisesResults.reduce((map, txes) => {
+    txes.forEach(tx => {
+      if (!map[tx.blockheight]) {
+        map[tx.blockheight] = [];
+      }
+
+      map[tx.blockheight].push(tx);
     });
 
-    blk.tx = txs;
-    blocks.push(blk);
-  }
+    return map;
+  }, {});
+
+  Object.keys(txesToBlocks).forEach(blockheight => {
+    const blk = blks.find(x => x.height == blockheight);
+
+    if (blk) {
+      blk.tx = txesToBlocks[blockheight];
+      blocks.push(blk);
+
+      console.log(`Pushed block ${ blk.height }`);
+    }
+  });
 }
 
 async function fetchBlockTxs(blk) {
   const txes = [];
+  const promises = [];
 
   for (let txid of blk.tx) {
-    const tx = await attempts(1000, 10000, 1.5, () => fetchBlockTx(blk, txid), (interval, e) => {
+    promises.push(await attempts(1000, 10000, 1.5, () => fetchBlockTx(blk, txid), (interval, e) => {
       console.error(`Error handling tx ${ txid }. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
-    console.error(e);
-    });
-
-    txes.push(tx);
+      console.error(e);
+    }));
   }
+
+  const promisesResults = await Promise.all(promises);
+
+  promisesResults.forEach(tx => txes.push(tx));
 
   return txes;
 }

@@ -70,8 +70,11 @@ async function updateVin() {
   }
 
   if (bulk.length) {
+    const bulkLength = bulk.length;
+
     await bulk.execute();
-    console.log(`Done ${ bulk.length } bulk operations`);
+
+    console.log(`Done ${ bulkLength } bulk operations`);
   }
 }
 

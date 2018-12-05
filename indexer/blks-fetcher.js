@@ -7,7 +7,7 @@ const Tx = require('../models/tx');
 const dbString = `mongodb://${ settings.dbsettings.user }:${ settings.dbsettings.password }@${ settings.dbsettings.address }:${ settings.dbsettings.port }/${ settings.dbsettings.database }`;
 const port = process.env.BLKS_FETCHER_PORT || 9081;
 
-var lastHeight = 0;
+var lastHeight = 1;
 var blockNumber = 0;
 var blocks = [];
 

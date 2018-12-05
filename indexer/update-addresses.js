@@ -58,13 +58,19 @@ async function updateAddresses() {
   }
 
   if (bulk.length) {
+    var bulkLength = bulk.length;
+
     await bulk.execute();
 
     if (txsBulk.length) {
+      bulkLength += txsBulk.length;
+
       await txsBulk.execute();
     }
 
-    console.log(`Done ${ bulk.length + txsBulk.length } bulk operations`);
+    await bulk.execute();
+
+    console.log(`Done ${ bulkLength } bulk operations`);
   }
 }
 
