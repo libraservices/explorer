@@ -62,7 +62,7 @@ async function saveBlocks(blocks) {
     for (let tx of blk.tx) {
       console.log(`Added tx ${ tx.hash } to bulk (${ bulk.length }/${ bulkSize })`);
 
-      bulk.insert({ $setOnInsert: {
+      bulk.insert({
         raw : tx.raw,
         txid : tx.hash,
         vout : tx.vout,
@@ -74,7 +74,7 @@ async function saveBlocks(blocks) {
         blockindex : tx.blockheight,
         confirmations : parseInt(tx.confirmations, 10),
         calculated : false
-      } });
+      });
     }
   }
 
