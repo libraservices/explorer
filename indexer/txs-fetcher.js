@@ -45,7 +45,17 @@ async function tryStartFetchingBlocks() {
     console.error(e);
   });
 
-  await handleBlocks(blks);
+  var pieceOfBlocks = [];
+
+  for (let i = 0; i < blks.length; i++) {
+    pieceOfBlocks.push(blks[i]);
+
+    if (pieceOfBlocks.length === 10 || i === blks.length -1) {
+      await handleBlocks(pieceOfBlocks);
+
+      pieceOfBlocks = [];
+    }
+  }
 
   setTimeout(tryStartFetchingBlocks, 10);
 }
