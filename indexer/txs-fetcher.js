@@ -45,6 +45,8 @@ async function tryStartFetchingBlocks() {
     console.error(e);
   });
 
+  console.log('Got ' + blks.length + ' new blocks');
+
   var pieceOfBlocks = [];
 
   for (let i = 0; i < blks.length; i++) {
@@ -71,8 +73,6 @@ async function handleBlocks(blks) {
     return;
   }
 
-  console.log('Got ' + blks.length + ' new blocks');
-
   const promises = [];
 
   for (let blk of blks) {
@@ -80,7 +80,7 @@ async function handleBlocks(blks) {
 
     promises.push(await attempts(1000, 10000, 1.5, () => fetchBlockTxs(blk), (interval, e) => {
       console.error(`Error fetching block txs, height ${ blk.height }. Next try in ${ parseFloat(interval / 1000, 10) } s...`);
-    console.error(e);
+      console.error(e);
     }));
   }
 

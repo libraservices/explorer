@@ -103,7 +103,7 @@ async function fetchBlock(blockHeight) {
   blocks.push(block);
   lastHeight = blockHeight;
 
-  console.error(`Pushed block ${ blockHeight } to stack`);
+  console.log(`Pushed block ${ blockHeight } to stack`);
 }
 
 main().catch(e => {
