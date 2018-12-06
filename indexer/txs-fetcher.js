@@ -26,8 +26,8 @@ function startServer() {
   const app = express();
 
   app.get('/', (req, res) => {
-    res.send(blocks);
-    blocks = [];
+    const blk = blocks.shift();
+    res.send(blk ? [ blk ] : []);
   });
 
   return new Promise((resolve, reject) => {

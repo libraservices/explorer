@@ -7,7 +7,7 @@ const Tx = require('../models/tx');
 const dbString = `mongodb://${ settings.dbsettings.user }:${ settings.dbsettings.password }@${ settings.dbsettings.address }:${ settings.dbsettings.port }/${ settings.dbsettings.database }`;
 const port = process.env.BLKS_FETCHER_PORT || 9081;
 
-var lastHeight = 1;
+var lastHeight = 300000;
 var blockNumber = 0;
 var blocks = [];
 
@@ -61,8 +61,11 @@ async function startServer() {
   const app = express();
 
   app.get('/', (req, res) => {
-    res.send(blocks);
-    blocks = [];
+    const blk = blocks.shift();
+
+    res.send(blk ? [ blk ] : []);
+
+    fetchNextBlocks();
   });
 
   return new Promise((resolve, reject) => {
@@ -103,7 +106,7 @@ async function fetchBlock(blockHeight) {
   blocks.push(block);
   lastHeight = blockHeight;
 
-  console.log(`Pushed block ${ blockHeight } to stack`);
+  console.log(`Pushed block ${ blockHeight } to stack, size: ${ blocks.length }`);
 }
 
 main().catch(e => {
