@@ -28,7 +28,7 @@ async function initWorker() {
 
   async function updateVin() {
     const nTxes = await Tx.count({ fullvin: false });
-    const limit = 1000;
+    const limit = 10000;
 
     logger.info(`Found ${ nTxes } not full txes`);
 
@@ -36,7 +36,7 @@ async function initWorker() {
       const bulk = Tx.collection.initializeUnorderedBulkOp();
       const txes = await Tx.find({ fullvin : false }).skip(i).limit(limit).exec();
 
-      logger.info(`Iteration ${ (i + 1) } of ${ Math.ceil(nTxes / limit) }, selected: ${ txes.length }`);
+      logger.info(`Handling ${ (i + limit) } of ${ nTxes } (${ ((i + limit) / nTxes) * 100 }%)`);
 
       const relatedTxesHashed = txes.reduce((acc, tx) => {
         for (let vin of tx.vin) {
