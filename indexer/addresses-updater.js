@@ -29,7 +29,7 @@ async function initWorker() {
 
   async function updateAddresses() {
     const nTxes = await Tx.count({ fullvin: true, calculated: false });
-    const limit = 1000;
+    const limit = 10000;
 
     logger.info(`Updating addresses, found not used txes: ${ nTxes }, selecting: ${ limit }`)
 
