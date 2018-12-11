@@ -29,32 +29,31 @@ async function initWorker() {
 
   async function updateAddresses() {
     const nTxes = await Tx.count({ fullvin: true, calculated: false });
+    const limit = 1000;
 
-    logger.info(`Updating addresses, found not used txes: ${ nTxes }`)
+    logger.info(`Updating addresses, found not used txes: ${ nTxes }, selecting: ${ limit }`)
 
     var bulk = Address.collection.initializeUnorderedBulkOp();
     var txsBulk = Tx.collection.initializeUnorderedBulkOp();
 
-    for (let i = 0; i < nTxes; i += 1000) {
-      const txes = await Tx.find({ fullvin: true, calculated: false }).skip(i).limit(1000).exec();
+    const txes = await Tx.find({ fullvin: true, calculated: false }).limit(limit).exec();
 
-      for (let tx of txes) {
-        for (let vin of tx.vin) {
-          bulk.find({ a_id: vin.addresses }).upsert().update({ $inc: {
-            sent : vin.amount,
-            balance : -vin.amount
-          } });
-        }
-
-        for (let vout of tx.vout) {
-          bulk.find({ a_id: vout.addresses }).upsert().update({ $inc: {
-            received : vout.amount,
-            balance : vout.amount
-          } });
-        }
-
-        txsBulk.find({ txid: tx.txid }).update({ $set: { calculated: true } });
+    for (let tx of txes) {
+      for (let vin of tx.vin) {
+        bulk.find({ a_id: vin.addresses }).upsert().update({ $inc: {
+          sent : vin.amount,
+          balance : -vin.amount
+        } });
       }
+
+      for (let vout of tx.vout) {
+        bulk.find({ a_id: vout.addresses }).upsert().update({ $inc: {
+          received : vout.amount,
+          balance : vout.amount
+        } });
+      }
+
+      txsBulk.find({ txid: tx.txid }).update({ $set: { calculated: true } });
     }
 
     if (bulk.length) {

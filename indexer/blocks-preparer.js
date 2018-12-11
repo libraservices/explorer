@@ -68,16 +68,18 @@ async function initWorker() {
       logger.error(`Failed to get block count. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
-    const blocksToSynch = [ ...new Array(blockCount + 1).keys() ].filter(i => synchedBlocks.indexOf(i) === -1);
-    const queueBlocks = [];
+    let cPushedToQueue = 0;
 
-    for (let i = 0; i < Math.min(1000, blocksToSynch.length); i++) {
-      const blockHeight = blocksToSynch[i];
+    for (let i = 0; i < blockCount + 1 && cPushedToQueue < 1000; i++) {
+      if (synchedBlocks.indexOf(i) !== -1) {
+        continue;
+      }
 
-      channel.sendToQueue(QUEUE_BLOCKS_TO_FETCH, Buffer.from(blockHeight + ''));
-      logger.info(`Prepared block to fetch: ${ blockHeight }`);
+      channel.sendToQueue(QUEUE_BLOCKS_TO_FETCH, Buffer.from(i + ''));
+      logger.info(`Prepared block to fetch: ${ i }`);
 
-      synchedBlocks.push(blockHeight);
+      synchedBlocks.push(i);
+      cPushedToQueue++;
     }
   }
 }
