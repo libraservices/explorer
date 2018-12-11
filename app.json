@@ -1,0 +1,48 @@
+{
+	"apps": [
+		{
+			"name": "api",
+			"script": "bin/instance",
+			"merge_logs": true,
+			"log_date_format": "YYYY-MM-DD HH:mm Z"
+		},
+		{
+			"name": "blocks-preparer",
+			"script": "indexer/blocks-preparer.js",
+			"merge_logs": true,
+			"log_date_format": "YYYY-MM-DD HH:mm Z"
+		},
+		{
+			"name": "blocks-fetcher",
+			"script": "indexer/blocks-fetcher.js",
+			"instances": 6,
+			"merge_logs": true,
+			"log_date_format": "YYYY-MM-DD HH:mm Z"
+		},
+		{
+			"name": "blocks-transactions-fetcher",
+			"script": "indexer/blocks-transactions-fetcher.js",
+			"instances": 20,
+			"merge_logs": true,
+			"log_date_format": "YYYY-MM-DD HH:mm Z"
+		},
+		{
+			"name": "blocks-transactions-saver",
+			"script": "indexer/blocks-transactions-saver.js",
+			"merge_logs": true,
+			"log_date_format": "YYYY-MM-DD HH:mm Z"
+		},
+		{
+			"name": "addresses-updater",
+			"script": "indexer/addresses-updater.js",
+			"merge_logs": true,
+			"log_date_format": "YYYY-MM-DD HH:mm Z"
+		},
+		{
+			"name": "inputs-updater",
+			"script": "indexer/inputs-updater.js",
+			"merge_logs": true,
+			"log_date_format": "YYYY-MM-DD HH:mm Z"
+		}
+	]
+}
