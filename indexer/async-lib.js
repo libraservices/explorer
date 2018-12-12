@@ -72,10 +72,17 @@ function calcJobTime(startTime) {
   return `${ parseFloat((Date.now() - startTime) / 1000) }s`;
 }
 
+function convertToSatoshi(amount) {
+  var fixed = amount.toFixed(8).toString();
+
+  return parseInt(fixed.replace('.', ''));
+}
+
 module.exports = {
   attempts,
   request : asyncRequest,
   calcJobTime,
+  convertToSatoshi,
   mongooseConnect,
   getBlockNumber,
   getBlockHash,

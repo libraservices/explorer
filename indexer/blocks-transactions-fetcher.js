@@ -5,7 +5,7 @@ const {
   QUEUE_BLOCKS_TO_FETCH_TXS,
   QUEUE_BLOCKS_TO_SAVE
 } = require('./constants');
-const { attempts, calcJobTime, getTx } = require('./async-lib');
+const { attempts, calcJobTime, convertToSatoshi, getTx } = require('./async-lib');
 
 async function initWorker() {
   const logger = new Logger('blocks-transactions-fetcher');
@@ -91,7 +91,7 @@ async function initWorker() {
     if (tx.vout && tx.vout.length) {
       for (let txVout of tx.vout) {
         if (txVout.scriptPubKey.type != 'nonstandard' && txVout.scriptPubKey.type != 'nulldata') {
-          vout.push({ addresses: txVout.scriptPubKey.addresses[0], amount: txVout.value, n: txVout.n });
+          vout.push({ addresses: txVout.scriptPubKey.addresses[0], amount: convertToSatoshi(txVout.value), n: txVout.n });
         }
       }
     }
