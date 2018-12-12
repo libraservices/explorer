@@ -10,7 +10,8 @@ var TxSchema = new Schema({
   timestamp: { type: Number, default: 0 },
   blockhash: { type: String },
   blockindex: {type: Number, default: 0},
-  confirmations: { type: Number, default: 0 }
+  confirmations: { type: Number, default: 0 },
+  fullvin : { type: Boolean, default: false }
 }, {id: false});
 
 TxSchema.index({ txid: 1 });

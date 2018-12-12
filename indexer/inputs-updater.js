@@ -33,66 +33,64 @@ async function initWorker() {
 
     logger.info(`Found ${ nTxes } not full txes`);
 
-    for (let i = 0; i < nTxes; i += limit) {
-      const bulk = Tx.collection.initializeUnorderedBulkOp();
-      const checkTxsBatchStartTime = Date.now();
-      const txes = await Tx.find({ fullvin : false }).sort({ txid: 1 }).limit(limit).skip(i).exec();
+    const checkTxsBatchStartTime = Date.now();
+    const txes = await Tx.find({ fullvin : false }).sort({ txid: 1 }).limit(limit).exec();
 
-      logger.info(`Handling ${ (i + limit) } of ${ nTxes } (${ ((i + limit) / nTxes) * 100 }%)`);
+    logger.info(`Handling ${ txes.length } txs`);
 
-      const relatedTxesHashed = txes.reduce((acc, tx) => {
-        for (let vin of tx.vin) {
-          if (acc.findIndex(x => x !== vin.txid) === -1 && txes.findIndex(x => x.txid !== vin.txid) === -1) {
-            acc.push(vin.txid);
-          }
+    const fullTxs = [];
+
+    for (const tx of txes) {
+      const txValues = tx.toJSON();
+
+      const txVin = [];
+      const checkTxStartTime = Date.now();
+
+      for (const vinIndex in txValues.vin) {
+        const vin = txValues.vin[vinIndex];
+
+        if (vin.addresses !== undefined) {
+          txVin.push(vin);
+          continue;
         }
 
-        return acc;
-      }, []);
-
-      const relatedTxes = relatedTxesHashed.length ? await Tx.find({ txid: relatedTxesHashed }) : [];
-      const fullTxs = [];
-
-      for (let tx of txes) {
-        const txVin = [];
-        const checkTxStartTime = Date.now();
-
-        for (const vinIndex in tx.vin) {
-          const vin = tx.vin[vinIndex];
-
-          if (vin.coinbase) {
-            txVin.push({ ...vin, addresses: 'coinbase', amount: tx.vout[vinIndex].amount });
-          } else {
-            const vinTx = txes.find(x => x.txid === vin.txid) || relatedTxes.find(x => x.txid === vin.txid);
-
-            if (vinTx) {
-              const vinTxVout = vinTx.vout.find(x => x.n === vin.vout);
-
-              if (vinTxVout) {
-                txVin.push({ ...vin, addresses: vinTxVout.addresses, amount: vinTxVout.amount });
-              }
-            }
-          }
+        if (vin.coinbase) {
+          txVin.push({ ...vin, addresses: 'coinbase', amount: txValues.vout[vinIndex].amount });
+          continue;
         }
 
-        if (txVin.length === tx.vin.length) {
-          bulk.find({ txid: tx.txid }).update({ $set: { vin: txVin, fullvin: true } });
-          fullTxs.push(tx.txid);
+        const vinTx = await Tx.findOne({ txid : vin.txid });
+
+        if (!vinTx) {
+          txVin.push(vin);
+          continue;
         }
+
+        const vinTxVout = vinTx.vout.find(x => x.n === vin.vout);
+
+        if (!vinTxVout) {
+          txVin.push(vin);
+          continue;
+        }
+
+        txVin.push({ ...vin, addresses: vinTxVout.addresses, amount: vinTxVout.amount });
       }
 
-      logger.info(`Checked ${ txes.length } in ${ calcJobTime(checkTxsBatchStartTime) }, full txs: ${ fullTxs.join(', ') }`);
-
-      if (bulk.length) {
-        const bulkLength = bulk.length;
-
-        await bulk.execute();
-
-        logger.info(`Done ${ bulkLength } bulk operations`);
+      if (txVin.filter(x => x.addresses === undefined).length === txValues.vin.filter(x => x.addresses === undefined).length) {
+        continue;
       }
+
+      const updateValues = { vin : txVin };
+
+      if (txVin.filter(x => x.addresses !== undefined).length === txValues.vin.length) {
+        updateValues.fullvin = true;
+        fullTxs.push(txValues.txid);
+      }
+
+      await Tx.update({ txid : tx.txid }, updateValues);
     }
 
-    logger.info(`Checked all (${ nTxes }) not full txes in ${ calcJobTime(checkAllTxsStartTime) }`);
+    logger.info(`Checked ${ txes.length } in ${ calcJobTime(checkTxsBatchStartTime) }, full txs: ${ fullTxs.join(', ') }`);
   }
 }
 
