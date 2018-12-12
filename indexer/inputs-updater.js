@@ -28,7 +28,7 @@ async function initWorker() {
 
   async function updateVin() {
     const nTxes = await Tx.count({ fullvin: false });
-    const limit = 1000;
+    const limit = 10000;
     const checkAllTxsStartTime = Date.now();
 
     logger.info(`Found ${ nTxes } not full txes`);

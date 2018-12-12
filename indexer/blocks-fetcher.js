@@ -1,4 +1,5 @@
 const amqp = require('amqplib');
+const settings = require('../lib/settings');
 const {
   QUEUE_BLOCKS_TO_FETCH,
   QUEUE_BLOCKS_TO_FETCH_TXS
@@ -10,6 +11,7 @@ const {
   calcJobTime
 } = require('./async-lib');
 const Logger = require('../lib/logger');
+const { prefix : amqpPrefix, url : amqpUrl } = settings.amqp;
 
 async function initWorker() {
   const logger = new Logger('blocks-fetcher');
@@ -21,7 +23,7 @@ async function initWorker() {
   await consumeChannels();
 
   async function initAMQP() {
-    connection = await attempts(1000, 10000, 1.5, () => amqp.connect('amqp://localhost'), (ms, e) => {
+    connection = await attempts(1000, 10000, 1.5, () => amqp.connect(amqpUrl), (ms, e) => {
       logger.error(`Failed to initialize AMQP connection. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
@@ -32,20 +34,20 @@ async function initWorker() {
     });
     channel.prefetch(1);
     logger.info(`Initialized the amqp channel`);
-    await attempts(1000, 10000, 1.5, () => channel.assertQueue(QUEUE_BLOCKS_TO_FETCH), (ms, e) => {
-      logger.error(`Failed to assert AMQP queue ${ QUEUE_BLOCKS_TO_FETCH }. Next attempt in ${ parseFloat(ms / 1000) }s`);
+    await attempts(1000, 10000, 1.5, () => channel.assertQueue(amqpPrefix + QUEUE_BLOCKS_TO_FETCH), (ms, e) => {
+      logger.error(`Failed to assert AMQP queue ${ amqpPrefix + QUEUE_BLOCKS_TO_FETCH }. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
-    logger.info(`Initialized the amqp queue ${ QUEUE_BLOCKS_TO_FETCH }`);
-    await attempts(1000, 10000, 1.5, () => channel.assertQueue(QUEUE_BLOCKS_TO_FETCH_TXS), (ms, e) => {
-      logger.error(`Failed to assert AMQP queue ${ QUEUE_BLOCKS_TO_FETCH_TXS }. Next attempt in ${ parseFloat(ms / 1000) }s`);
+    logger.info(`Initialized the amqp queue ${ amqpPrefix + QUEUE_BLOCKS_TO_FETCH }`);
+    await attempts(1000, 10000, 1.5, () => channel.assertQueue(amqpPrefix + QUEUE_BLOCKS_TO_FETCH_TXS), (ms, e) => {
+      logger.error(`Failed to assert AMQP queue ${ amqpPrefix + QUEUE_BLOCKS_TO_FETCH_TXS }. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
-    logger.info(`Initialized the amqp queue ${ QUEUE_BLOCKS_TO_FETCH_TXS }`);
+    logger.info(`Initialized the amqp queue ${ amqpPrefix + QUEUE_BLOCKS_TO_FETCH_TXS }`);
   }
 
   async function consumeChannels() {
-    channel.consume(QUEUE_BLOCKS_TO_FETCH, tryFetchBlock, { noAck: false });
+    channel.consume(amqpPrefix + QUEUE_BLOCKS_TO_FETCH, tryFetchBlock, { noAck: false });
   }
 
   async function tryFetchBlock (task) {
@@ -57,7 +59,7 @@ async function initWorker() {
       logger.error(e);
     });
     logger.info(`Fetched block ${ blockHeight } in ${ calcJobTime(startTime) }`);
-    channel.sendToQueue(QUEUE_BLOCKS_TO_FETCH_TXS, Buffer.from(JSON.stringify(block)));
+    channel.sendToQueue(amqpPrefix + QUEUE_BLOCKS_TO_FETCH_TXS, Buffer.from(JSON.stringify(block)));
     channel.ack(task);
     logger.info(`Pushed block ${ blockHeight } to the next queue`);
   }

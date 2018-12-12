@@ -5,6 +5,7 @@ const {
 } = require('./constants');
 const { attempts, mongooseConnect, getBlockNumber } = require('./async-lib');
 const Logger = require('../lib/logger');
+const { prefix : amqpPrefix, url : amqpUrl } = settings.amqp;
 
 const Tx = require('../models/tx');
 
@@ -28,7 +29,7 @@ async function initWorker() {
   }
 
   async function initAMQP() {
-    connection = await attempts(1000, 10000, 1.5, () => amqp.connect('amqp://localhost'), (ms, e) => {
+    connection = await attempts(1000, 10000, 1.5, () => amqp.connect(amqpUrl), (ms, e) => {
       logger.error(`Failed to initialize AMQP connection. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
@@ -40,11 +41,11 @@ async function initWorker() {
     });
     logger.info(`Initialized the amqp channel`);
 
-    await attempts(1000, 10000, 1.5, () => channel.assertQueue(QUEUE_BLOCKS_TO_FETCH), (ms, e) => {
+    await attempts(1000, 10000, 1.5, () => channel.assertQueue(amqpPrefix + QUEUE_BLOCKS_TO_FETCH), (ms, e) => {
       logger.error(`Failed to assert AMQP queue. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
-    logger.info(`Initialized the amqp queue`);
+    logger.info(`Initialized the amqp queue ${ amqpPrefix + QUEUE_BLOCKS_TO_FETCH }`);
   }
 
   async function updateLastState() {
@@ -53,7 +54,7 @@ async function initWorker() {
 
   async function checkAndPrepareTasks() {
     setTimeout(async () => {
-      const { messageCount } = await channel.checkQueue(QUEUE_BLOCKS_TO_FETCH);
+      const { messageCount } = await channel.checkQueue(amqpPrefix + QUEUE_BLOCKS_TO_FETCH);
 
       if (messageCount === 0) {
         await prepareBlocksToFetch();
@@ -68,19 +69,20 @@ async function initWorker() {
       logger.error(`Failed to get block count. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
-    let cPushedToQueue = 0;
+    let pushedToQueue = [];
 
-    for (let i = 0; i < blockCount + 1 && cPushedToQueue < 1000; i++) {
+    for (let i = 0; i < blockCount + 1 && pushedToQueue.length < 1000; i++) {
       if (synchedBlocks.indexOf(i) !== -1) {
         continue;
       }
 
-      channel.sendToQueue(QUEUE_BLOCKS_TO_FETCH, Buffer.from(i + ''));
-      logger.info(`Prepared block to fetch: ${ i }`);
+      channel.sendToQueue(amqpPrefix + QUEUE_BLOCKS_TO_FETCH, Buffer.from(i + ''));
 
       synchedBlocks.push(i);
-      cPushedToQueue++;
+      pushedToQueue.push(i);
     }
+
+    logger.info(`Prepared blocks to fetch: ${ pushedToQueue.join(', ') }`);
   }
 }
 

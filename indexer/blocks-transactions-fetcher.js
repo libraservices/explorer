@@ -6,6 +6,7 @@ const {
   QUEUE_BLOCKS_TO_SAVE
 } = require('./constants');
 const { attempts, calcJobTime, convertToSatoshi, getTx } = require('./async-lib');
+const { prefix : amqpPrefix, url : amqpUrl } = settings.amqp;
 
 async function initWorker() {
   const logger = new Logger('blocks-transactions-fetcher');
@@ -17,7 +18,7 @@ async function initWorker() {
   await consumeChannels();
 
   async function initAMQP() {
-    connection = await attempts(1000, 10000, 1.5, () => amqp.connect('amqp://localhost'), (ms, e) => {
+    connection = await attempts(1000, 10000, 1.5, () => amqp.connect(amqpUrl), (ms, e) => {
       logger.error(`Failed to initialize AMQP connection. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
@@ -28,20 +29,20 @@ async function initWorker() {
     });
     channel.prefetch(1);
     logger.info(`Initialized the amqp channel`);
-    await attempts(1000, 10000, 1.5, () => channel.assertQueue(QUEUE_BLOCKS_TO_FETCH_TXS), (ms, e) => {
+    await attempts(1000, 10000, 1.5, () => channel.assertQueue(amqpPrefix + QUEUE_BLOCKS_TO_FETCH_TXS), (ms, e) => {
       logger.error(`Failed to assert AMQP queue. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
     logger.info(`Initialized the amqp queue`);
-    await attempts(1000, 10000, 1.5, () => channel.assertQueue(QUEUE_BLOCKS_TO_SAVE), (ms, e) => {
-      logger.error(`Failed to assert AMQP queue ${ QUEUE_BLOCKS_TO_SAVE }. Next attempt in ${ parseFloat(ms / 1000) }s`);
+    await attempts(1000, 10000, 1.5, () => channel.assertQueue(amqpPrefix + QUEUE_BLOCKS_TO_SAVE), (ms, e) => {
+      logger.error(`Failed to assert AMQP queue ${ amqpPrefix + QUEUE_BLOCKS_TO_SAVE }. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
-    logger.info(`Initialized the amqp queue ${ QUEUE_BLOCKS_TO_SAVE }`);
+    logger.info(`Initialized the amqp queue ${ amqpPrefix + QUEUE_BLOCKS_TO_SAVE }`);
   }
 
   async function consumeChannels() {
-    channel.consume(QUEUE_BLOCKS_TO_FETCH_TXS, tryFetchBlockTransactions, { noAck: false });
+    channel.consume(amqpPrefix + QUEUE_BLOCKS_TO_FETCH_TXS, tryFetchBlockTransactions, { noAck: false });
   }
 
   async function tryFetchBlockTransactions (task) {
@@ -53,7 +54,7 @@ async function initWorker() {
       logger.error(e);
     });
     logger.info(`Fetched block ${ block.height } transactions in ${ calcJobTime(startTime) }`);
-    channel.sendToQueue(QUEUE_BLOCKS_TO_SAVE, Buffer.from(JSON.stringify(block)));
+    channel.sendToQueue(amqpPrefix + QUEUE_BLOCKS_TO_SAVE, Buffer.from(JSON.stringify(block)));
     channel.ack(task);
 
     logger.info(`Pushed block ${ block.height } to the next queue`);

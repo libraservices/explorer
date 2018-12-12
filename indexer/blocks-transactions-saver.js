@@ -5,6 +5,7 @@ const {
 } = require('./constants');
 const { attempts, mongooseConnect } = require('./async-lib');
 const Logger = require('../lib/logger');
+const { prefix : amqpPrefix, url : amqpUrl } = settings.amqp;
 
 async function initWorker() {
   const Tx = require('../models/tx');
@@ -26,12 +27,12 @@ async function initWorker() {
   }
 
   async function consumeChannels() {
-    channel.consume(QUEUE_BLOCKS_TO_SAVE, trySaveBlockTransactions, { noAck: false });
+    channel.consume(amqpPrefix + QUEUE_BLOCKS_TO_SAVE, trySaveBlockTransactions, { noAck: false });
   }
 
   async function initAMQP() {
-    connection = await attempts(1000, 10000, 1.5, () => amqp.connect('amqp://localhost'), (ms, e) => {
-      logger.error(`Failed to initialize AMQP connection. Next attempt in ${ parseFloat(ms / 1000) }s`);
+    connection = await attempts(1000, 10000, 1.5, () => amqp.connect(amqpUrl), (ms, e) => {
+      logger.error(`Failed to initialize AMQP connection (${ amqpUrl }). Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
     logger.info(`Initialized the amqp connection`);
@@ -41,11 +42,11 @@ async function initWorker() {
     });
     channel.prefetch(1);
     logger.info(`Initialized the amqp channel`);
-    await attempts(1000, 10000, 1.5, () => channel.assertQueue(QUEUE_BLOCKS_TO_SAVE), (ms, e) => {
-      logger.error(`Failed to assert AMQP queue ${ QUEUE_BLOCKS_TO_SAVE }. Next attempt in ${ parseFloat(ms / 1000) }s`);
+    await attempts(1000, 10000, 1.5, () => channel.assertQueue(amqpPrefix + QUEUE_BLOCKS_TO_SAVE), (ms, e) => {
+      logger.error(`Failed to assert AMQP queue ${ amqpPrefix + QUEUE_BLOCKS_TO_SAVE }. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
-    logger.info(`Initialized the amqp queue ${ QUEUE_BLOCKS_TO_SAVE }`);
+    logger.info(`Initialized the amqp queue ${ amqpPrefix + QUEUE_BLOCKS_TO_SAVE }`);
   }
 
   async function trySaveBlockTransactions(task) {
