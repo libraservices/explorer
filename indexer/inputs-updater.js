@@ -51,6 +51,7 @@ async function initWorker() {
       }, []);
 
       const relatedTxes = relatedTxesHashed.length ? await Tx.find({ txid: relatedTxesHashed }) : [];
+      const fullTxs = [];
 
       for (let tx of txes) {
         const txVin = [];
@@ -75,14 +76,12 @@ async function initWorker() {
         }
 
         if (txVin.length === tx.vin.length) {
-          logger.info(`${ tx.txid }: full (${ calcJobTime(checkTxStartTime) })`);
           bulk.find({ txid: tx.txid }).update({ $set: { vin: txVin, fullvin: true } });
-        } else {
-          logger.info(`${ tx.txid }: not full (${ calcJobTime(checkTxStartTime) })`);
+          fullTxs.push(tx.txid);
         }
       }
 
-      logger.info(`Checked ${ txes.length } in ${ calcJobTime(checkTxsBatchStartTime) }`);
+      logger.info(`Checked ${ txes.length } in ${ calcJobTime(checkTxsBatchStartTime) }, full txs: ${ fullTxs.join(', ') }`);
 
       if (bulk.length) {
         const bulkLength = bulk.length;
