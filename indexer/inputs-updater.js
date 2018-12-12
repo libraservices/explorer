@@ -28,13 +28,13 @@ async function initWorker() {
 
   async function updateVin() {
     const nTxes = await Tx.count({ fullvin: false });
-    const limit = 10000;
+    const limit = 1000;
 
     logger.info(`Found ${ nTxes } not full txes`);
 
     for (let i = 0; i < nTxes; i += limit) {
       const bulk = Tx.collection.initializeUnorderedBulkOp();
-      const txes = await Tx.find({ fullvin : false }).skip(i).limit(limit).exec();
+      const txes = await Tx.find({ fullvin : false }).sort({ txid: 1 }).limit(limit).skip(i).exec();
 
       logger.info(`Handling ${ (i + limit) } of ${ nTxes } (${ ((i + limit) / nTxes) * 100 }%)`);
 
@@ -43,9 +43,9 @@ async function initWorker() {
           if (acc.findIndex(x => x !== vin.txid) === -1 && txes.findIndex(x => x.txid !== vin.txid) === -1) {
             acc.push(vin.txid);
           }
-
-          return acc;
         }
+
+        return acc;
       }, []);
 
       const relatedTxes = relatedTxesHashed.length ? await Tx.find({ txid: relatedTxesHashed }) : [];
