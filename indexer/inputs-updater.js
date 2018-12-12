@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const settings = require('../lib/settings');
 const Logger = require('../lib/logger');
-const { attempts, mongooseConnect } = require('./async-lib');
+const { attempts, calcJobTime, mongooseConnect } = require('./async-lib');
 
 const Tx = require('../models/tx');
 
@@ -29,11 +29,13 @@ async function initWorker() {
   async function updateVin() {
     const nTxes = await Tx.count({ fullvin: false });
     const limit = 1000;
+    const checkAllTxsStartTime = Date.now();
 
     logger.info(`Found ${ nTxes } not full txes`);
 
     for (let i = 0; i < nTxes; i += limit) {
       const bulk = Tx.collection.initializeUnorderedBulkOp();
+      const checkTxsBatchStartTime = Date.now();
       const txes = await Tx.find({ fullvin : false }).sort({ txid: 1 }).limit(limit).skip(i).exec();
 
       logger.info(`Handling ${ (i + limit) } of ${ nTxes } (${ ((i + limit) / nTxes) * 100 }%)`);
@@ -52,6 +54,7 @@ async function initWorker() {
 
       for (let tx of txes) {
         const txVin = [];
+        const checkTxStartTime = Date.now();
 
         for (const vinIndex in tx.vin) {
           const vin = tx.vin[vinIndex];
@@ -72,9 +75,14 @@ async function initWorker() {
         }
 
         if (txVin.length === tx.vin.length) {
+          logger.info(`${ tx.txid }: full (${ calcJobTime(checkTxStartTime) })`);
           bulk.find({ txid: tx.txid }).update({ $set: { vin: txVin, fullvin: true } });
+        } else {
+          logger.info(`${ tx.txid }: not full (${ calcJobTime(checkTxStartTime) })`);
         }
       }
+
+      logger.info(`Checked ${ txes.length } in ${ calcJobTime(checkTxsBatchStartTime) }`);
 
       if (bulk.length) {
         const bulkLength = bulk.length;
@@ -84,6 +92,8 @@ async function initWorker() {
         logger.info(`Done ${ bulkLength } bulk operations`);
       }
     }
+
+    logger.info(`Checked all (${ nTxes }) not full txes in ${ calcJobTime(checkAllTxsStartTime) }`);
   }
 }
 
