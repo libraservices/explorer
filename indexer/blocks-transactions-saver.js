@@ -1,11 +1,12 @@
 const amqp = require('amqplib');
+const { MongoError } = require('mongodb-core');
 const settings = require('../lib/settings');
 const {
   QUEUE_BLOCKS_TO_SAVE
 } = require('./constants');
 const { attempts, mongooseConnect } = require('./async-lib');
 const Logger = require('../lib/logger');
-const { prefix : amqpPrefix, url : amqpUrl } = settings.amqp;
+const { url : amqpUrl } = settings.amqp;
 
 async function initWorker() {
   const Tx = require('../models/tx');
@@ -27,7 +28,7 @@ async function initWorker() {
   }
 
   async function consumeChannels() {
-    channel.consume(amqpPrefix + QUEUE_BLOCKS_TO_SAVE, trySaveBlockTransactions, { noAck: false });
+    channel.consume(QUEUE_BLOCKS_TO_SAVE, trySaveBlockTransactions, { noAck: false });
   }
 
   async function initAMQP() {
@@ -42,11 +43,11 @@ async function initWorker() {
     });
     channel.prefetch(1);
     logger.info(`Initialized the amqp channel`);
-    await attempts(1000, 10000, 1.5, () => channel.assertQueue(amqpPrefix + QUEUE_BLOCKS_TO_SAVE), (ms, e) => {
-      logger.error(`Failed to assert AMQP queue ${ amqpPrefix + QUEUE_BLOCKS_TO_SAVE }. Next attempt in ${ parseFloat(ms / 1000) }s`);
+    await attempts(1000, 10000, 1.5, () => channel.assertQueue(QUEUE_BLOCKS_TO_SAVE), (ms, e) => {
+      logger.error(`Failed to assert AMQP queue ${ QUEUE_BLOCKS_TO_SAVE }. Next attempt in ${ parseFloat(ms / 1000) }s`);
       logger.error(e);
     });
-    logger.info(`Initialized the amqp queue ${ amqpPrefix + QUEUE_BLOCKS_TO_SAVE }`);
+    logger.info(`Initialized the amqp queue ${ QUEUE_BLOCKS_TO_SAVE }`);
   }
 
   async function trySaveBlockTransactions(task) {
@@ -89,7 +90,15 @@ async function initWorker() {
     }
 
     if (bulk.length > 0) {
-      await bulk.execute();
+      try {
+        await bulk.execute();
+      } catch (e) {
+        if (e.code === 11000) {
+          console.log(`Skipped some duplicate transactions`);
+        } else {
+          throw e;
+        }
+      }
 
       logger.info(`Indexed block ${ block.height }, hash: ${ block.hash }, txs: ${ block.transactions.length }`);
     }

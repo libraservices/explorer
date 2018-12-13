@@ -87,7 +87,11 @@ async function initWorker() {
         fullTxs.push(txValues.txid);
       }
 
-      await Tx.update({ txid : tx.txid }, updateValues);
+      try {
+        await Tx.update({ txid : tx.txid }, updateValues);
+      } catch (e) {
+        logger.error(e.message);
+      }
     }
 
     logger.info(`Checked ${ txes.length } in ${ calcJobTime(checkTxsBatchStartTime) }, full txs: ${ fullTxs.join(', ') }`);
