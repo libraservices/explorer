@@ -74,15 +74,15 @@ router.get('/getlasttxs/:min', makeRequestWrapper(
 ));
 
 router.get('/gettxs', makeRequestWrapper(
-  function({ limit = 100, page = 1 }, cb) {
+  function({ limit = 100, page = 1, starttimestamp }, cb) {
     var offset = (page - 1) * limit;
 
-    db.get_txs(limit, offset, function(err, txs){
+    db.get_txs({ limit, offset, starttimestamp }, function(err, txs){
       if (err || txs.length === 0) {
         return cb({ data: [], hasNext: false });
       }
 
-      db.get_txs(1, offset + txs.length, function (err, nextTxs) {
+      db.get_txs({ limit: 1, offset: offset + txs.length, starttimestamp }, function (err, nextTxs) {
         cb({ data: txs, hasNext: nextTxs && nextTxs.length > 0 ? true : false });
       });
     });
@@ -90,7 +90,8 @@ router.get('/gettxs', makeRequestWrapper(
   req => ({ ...req.params, ...req.query }),
   {
     limit: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ],
-    page: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ]
+    page: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ],
+    starttimestamp: [ 'positive_integer', { number_between: [ 1, Date.now() / 1000 | 0 ] } ]
   }
 ));
 
@@ -111,7 +112,7 @@ router.get('/gettx/:hash', makeRequestWrapper(
 ));
 
 router.get('/getaddrtxs/:hash', makeRequestWrapper(
-  function({ hash, limit = 100, page = 1 }, cb){
+  function({ hash, limit = 100, page = 1, starttimestamp }, cb){
     var offset = (page - 1) * limit;
 
     db.get_address(hash, function(address){
@@ -119,12 +120,12 @@ router.get('/getaddrtxs/:hash', makeRequestWrapper(
         return cb(new X({ code: 'ADDRESS_NOT_FOUND' }));
       }
 
-      db.get_addr_txs(hash, limit, offset, function(err, txs){
+      db.get_addr_txs(hash, { limit, offset, starttimestamp }, function(err, txs){
         if (err || txs.length === 0) {
           return cb({ data: [], hasNext: false });
         }
 
-        db.get_addr_txs(hash, 1, offset + txs.length, function (err, nextTxs) {
+        db.get_addr_txs(hash, { limit: 1, offset: offset + txs.length, starttimestamp }, function (err, nextTxs) {
           cb({ data: txs, hasNext: nextTxs && nextTxs.length > 0 ? true : false });
         });
       });
@@ -134,7 +135,8 @@ router.get('/getaddrtxs/:hash', makeRequestWrapper(
   {
     hash: [ 'required', 'string' ],
     limit: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ],
-    page: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ]
+    page: [ 'positive_integer', { number_between: [ 1, Number.MAX_SAFE_INTEGER - 1 ] } ],
+    starttimestamp: [ 'positive_integer', { number_between: [ 1, Date.now() / 1000 | 0 ] } ]
   }
 ));
 
