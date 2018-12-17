@@ -29,14 +29,12 @@ async function initWorker() {
 
   async function updateAddresses() {
     const nTxes = await Tx.count({ fullvin: true, calculated: false });
-    const limit = 1000;
-
-    logger.info(`Updating addresses, selecting: ${ limit }`);
+    const limit = 10000;
 
     var bulk = Address.collection.initializeUnorderedBulkOp();
     var txsBulk = Tx.collection.initializeUnorderedBulkOp();
 
-    const txes = await Tx.find({ fullvin: true, calculated: false }).limit(limit).exec();
+    const txes = await Tx.find({ fullvin: true, calculated: false }, 'txid vin vout').limit(limit).exec();
     const addressesBalancesIncrements = {};
 
     for (let tx of txes) {
@@ -90,8 +88,6 @@ async function initWorker() {
         await txsBulk.execute();
       }
 
-      await bulk.execute();
-
       logger.info(`Done ${ bulkLength } bulk operations`);
     }
   }
@@ -101,4 +97,8 @@ async function main() {
   await initWorker();
 }
 
-main();
+main().catch(e => {
+  console.error(e);
+  console.error(e.stack);
+  console.error('____________');
+});

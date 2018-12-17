@@ -149,4 +149,8 @@ async function main() {
   initWorker();
 }
 
-main();
+main().catch(e => {
+  console.error(e);
+  console.error(e.stack);
+  console.error('____________');
+});
