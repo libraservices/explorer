@@ -29,32 +29,55 @@ async function initWorker() {
 
   async function updateAddresses() {
     const nTxes = await Tx.count({ fullvin: true, calculated: false });
-    const limit = 10000;
+    const limit = 1000;
 
-    logger.info(`Updating addresses, found not used txes: ${ nTxes }, selecting: ${ limit }`)
+    logger.info(`Updating addresses, selecting: ${ limit }`);
 
     var bulk = Address.collection.initializeUnorderedBulkOp();
     var txsBulk = Tx.collection.initializeUnorderedBulkOp();
 
     const txes = await Tx.find({ fullvin: true, calculated: false }).limit(limit).exec();
+    const addressesBalancesIncrements = {};
 
     for (let tx of txes) {
       for (let vin of tx.vin) {
-        bulk.find({ a_id: vin.addresses }).upsert().update({ $inc: {
-          sent : vin.amount,
-          balance : -vin.amount
-        } });
+        if (!(vin.addresses in addressesBalancesIncrements)) {
+          addressesBalancesIncrements[vin.addresses] = {
+            sent : 0,
+            received : 0,
+            balance : 0
+          };
+        }
+
+        addressesBalancesIncrements[vin.addresses].sent += vin.amount;
+        addressesBalancesIncrements[vin.addresses].balance -= vin.amount;
       }
 
       for (let vout of tx.vout) {
-        bulk.find({ a_id: vout.addresses }).upsert().update({ $inc: {
-          received : vout.amount,
-          balance : vout.amount
-        } });
+        if (!(vout.addresses in addressesBalancesIncrements)) {
+          addressesBalancesIncrements[vout.addresses] = {
+            sent : 0,
+            received : 0,
+            balance : 0
+          };
+        }
+
+        addressesBalancesIncrements[vout.addresses].received += vout.amount;
+        addressesBalancesIncrements[vout.addresses].balance += vout.amount;
       }
 
       txsBulk.find({ txid: tx.txid }).update({ $set: { calculated: true } });
     }
+
+    Object.keys(addressesBalancesIncrements).forEach(address => {
+      const addressBalancesIncrements = addressesBalancesIncrements[address];
+
+      bulk.find({ a_id: address }).upsert().update({ $inc: {
+        received : addressBalancesIncrements.received,
+        sent : addressBalancesIncrements.sent,
+        balance : addressBalancesIncrements.balance
+      } });
+    });
 
     if (bulk.length) {
       var bulkLength = bulk.length;
